@@ -8,6 +8,6 @@ import gui
 
 if __name__ == '__main__':
     app = wx.PySimpleApp()
-    frame = gui.TestFrame(parent = None, id = -1) 
+    frame = gui.MainFrame(parent = None, id = -1) 
     frame.Show()
     app.MainLoop()

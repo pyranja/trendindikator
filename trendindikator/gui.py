@@ -4,17 +4,21 @@ Created on 06.11.2012
 @author: Manuel Graf
 '''
 import wx
+import wx.lib.plot
+from wx.lib.plot import PlotCanvas
 
 
-class TestFrame(wx.Frame):
+class MainFrame(wx.Frame):
     def __init__(self, parent, id):
-        wx.Frame.__init__(self, parent, id, 'Trendindikator vs Buy and Hold', size=(500,500))
+        wx.Frame.__init__(self, parent, id, 'Trendindikator vs Buy and Hold', size=(1000,500))
         
-        panel = wx.Panel(self) #panel for entire frame
+        panel = wx.Panel(self) # panel for entire frame
         
-        vbox = wx.BoxSizer(wx.VERTICAL) #sizer for entire frame
+        hboxMain = wx.BoxSizer(wx.HORIZONTAL) # sizer for entire frame
         
-        #horizontal box containing labels for index including date (from-to)
+        vboxInput = wx.BoxSizer(wx.VERTICAL)
+        
+        # horizontal box containing labels for index including date (from-to)
         hboxIndexLabel = wx.BoxSizer(wx.HORIZONTAL)
         
         staticTextIndex = wx.StaticText(panel, label='Index')
@@ -26,10 +30,10 @@ class TestFrame(wx.Frame):
         staticTextDateTo = wx.StaticText(panel, label='Ende')
         hboxIndexLabel.Add(staticTextDateTo)
         
-        vbox.Add(hboxIndexLabel, flag = wx.EXPAND|wx.LEFT|wx.RIGHT|wx.TOP, border = 10)
+        vboxInput.Add(hboxIndexLabel, flag = wx.EXPAND|wx.LEFT|wx.RIGHT|wx.TOP, border = 10)
         
         
-        #horizontal box containing value-fields for index including date (from-to)
+        # horizontal box containing value-fields for index including date (from-to)
         hboxIndexValue = wx.BoxSizer(wx.HORIZONTAL)
         
         textCtrlIndex = wx.TextCtrl(panel)
@@ -41,55 +45,94 @@ class TestFrame(wx.Frame):
         datePickerTo = wx.DatePickerCtrl(panel, -1, style=wx.DP_DROPDOWN|wx.DP_SHOWCENTURY)
         hboxIndexValue.Add(datePickerTo)
         
-        vbox.Add(hboxIndexValue, flag = wx.EXPAND|wx.LEFT|wx.RIGHT|wx.TOP, border = 10)
+        vboxInput.Add(hboxIndexValue, flag = wx.EXPAND|wx.LEFT|wx.RIGHT, border = 10)
         
         
-        vbox.Add((-1, 10)) #spacer between hboxes
+        vboxInput.Add((-1, 10)) # spacer between hboxes
         
-        #horizontal box containing trendindicator
-        hboxTrendindicator = wx.BoxSizer(wx.HORIZONTAL)
+        
+        # horizontal box containing labels for trendindicator
+        hboxTrendindicatorLabel = wx.BoxSizer(wx.HORIZONTAL)
+        
+        staticTextTrendindicator = wx.StaticText(panel, label='Trendindikator')
+        hboxTrendindicatorLabel.Add(staticTextTrendindicator, flag = wx.RIGHT, border = 61)
+        
+        staticTextTrendindicatorOption = wx.StaticText(panel, label='Trendindikator-Optionen')
+        hboxTrendindicatorLabel.Add(staticTextTrendindicatorOption)
+        
+        vboxInput.Add(hboxTrendindicatorLabel, flag = wx.EXPAND|wx.LEFT|wx.RIGHT|wx.TOP, border = 10)
+        
+        
+        # horizontal box containing trendindicator
+        hboxTrendindicatorValue = wx.BoxSizer(wx.HORIZONTAL)
         
         trendindicatorList = ["abc", "def"]
-        comboTrendindicator = wx.ComboBox(panel, choices = trendindicatorList)
-        comboTrendindicator.SetEditable(False)
-        hboxTrendindicator.Add(comboTrendindicator)
-
+        comboTrendindicator = wx.ComboBox(panel, choices = trendindicatorList, style=wx.CB_READONLY)
+        hboxTrendindicatorValue.Add(comboTrendindicator)
         
-        vbox.Add(hboxTrendindicator, flag = wx.EXPAND|wx.LEFT|wx.RIGHT|wx.TOP, border = 10)
+        #vertical static line seperating trendindicator-combobox from trendindicator-options
+#        vline = wx.StaticLine(panel, -1, style = wx.LI_VERTICAL)
+#        vline.SetSize((300, 10))
+#        hboxTrendindicatorValue.Add(vline)
         
-        #panelTest
-#        panelTest = wx.Panel(self)
-#        button = wx.Button(panelTest, label = "exit", pos = (130, 10), size = (60, 30))
-#        self.Bind(wx.EVT_BUTTON, self.closeButton, button)
-#
-#        button2 = wx.Button(panelTest, label = "open Graph", pos = (10, 10), size = (80, 30))
-##        self.Bind(wx.EVT_BUTTON, self.openGraph, button)
+        # vertical box nested in 'hboxTrendindicatorValue' containing trendindicator-options
+        vboxTrendindicatorValueOption = wx.BoxSizer(wx.VERTICAL)
+        
+        toggleButtonOption1 = wx.ToggleButton(panel, label = 'Option 1')
+        vboxTrendindicatorValueOption.Add(toggleButtonOption1)
+        
+        toggleButtonOption2 = wx.ToggleButton(panel, label = 'Option 2')
+        vboxTrendindicatorValueOption.Add(toggleButtonOption2)
+        
+        hboxTrendindicatorValue.Add(vboxTrendindicatorValueOption, flag = wx.LEFT, border = 83)
 
-        panel.SetSizer(vbox)
+        vboxInput.Add(hboxTrendindicatorValue, flag = wx.EXPAND|wx.LEFT|wx.RIGHT, border = 10)
+
+        hboxMain.Add(vboxInput)
+        
+        # panle for plotting the graph
+        canvas = PlotCanvas(panel)
+        canvas.SetEnableZoom(True)
+        canvas.SetEnableAntiAliasing(True)
+        canvas.Draw(drawGraph())
+        
+        hboxMain.Add(canvas, 1, wx.EXPAND)
+        
+        panel.SetSizer(hboxMain)
 
         self.Bind(wx.EVT_CLOSE, self.closeWindow)
 
-        #Statusbar
+        # Statusbar
         statusbar = self.CreateStatusBar()
 
-        #Menubar
+        # Menubar
         menubar = wx.MenuBar()
         menuFile = wx.Menu()
-        menuSettings = wx.Menu()
         menuFile.Append(wx.NewId(), "New File", "open new file")
         menubar.Append(menuFile, "File")
+        menuSettings = wx.Menu()
+        menuSettings.AppendRadioItem(-1, 'Indikator Moving Averages')
+        menuSettings.AppendRadioItem(-1, 'Indikator Standard')
+        menuIndikator = wx.Menu()
+        menuIndikator.AppendCheckItem(wx.ID_ANY, 'Option 1')
+        menuIndikator.AppendCheckItem(wx.ID_ANY, 'Option 2')
+        menuSettings.AppendMenu(wx.ID_ANY, 'Indikator-Options', menuIndikator)
         menubar.Append(menuSettings, "Settings")
+
         self.SetMenuBar(menubar)
-
-    def closeButton(self, event):
-        #Dialog-Box
-        box = wx.MessageDialog(None, 'Are you shure you wan\'t exit', 'Exit', wx.YES_NO)
-        selection = box.ShowModal()
-        if selection == 5103:
-            self.Close(True)
-
-##    def openGraph(self, event):
         
 
     def closeWindow(self, event):
-        self.Destroy()
+#        # dialog-box close programm
+#        box = wx.MessageDialog(None, 'Are you shure you wan\'t exit', 'Exit', wx.YES_NO)
+#        selection = box.ShowModal()
+#        if selection == 5103:
+            self.Destroy()
+        
+
+        
+def drawGraph():
+    data10 = [(x,y) for x, y in zip(range(10),range(10))]
+    lines1 = wx.lib.plot.PolyLine(data10, legend= 'Red Line', colour='black')
+    
+    return wx.lib.plot.PlotGraphics([lines1],"Title", "X axis", "Y axis")
