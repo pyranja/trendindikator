@@ -19,7 +19,7 @@ class TestRestUrlBuilding(unittest.TestCase):
         self.subject.move("one")
         self.assertEqual("/one", self.subject.path())
     
-    def test_conscutive_move(self):
+    def test_consecutive_move(self):
         self.subject.move("one")
         self.subject.move("two")
         self.assertEqual("/one/two", self.subject.path())
