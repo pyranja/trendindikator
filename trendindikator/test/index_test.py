@@ -8,7 +8,7 @@ from core.index import CsvRepository
 from datetime import datetime
 
 def mock_fetcher(p1, p2, p3):
-    return "Date,Adj Close\n2012-11-01,1.0\n2013-01-02,2.5\n"
+    return "Date,Adj Close\n2013-01-02,2.5\n2012-11-01,1.0\n"
 
 class Test(unittest.TestCase):
 

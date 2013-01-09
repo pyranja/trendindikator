@@ -20,8 +20,7 @@ def yahoo_fetcher(stock, start, end):
         c.query("g","d")
         resp = c.get()
         if not resp.status == 200:
-            error = resp.read()
-            raise IOError("Failed to fetch index data. "+ resp.status +" : "+ error)
+            raise IOError("Failed to fetch index data. Error code : %i" % resp.status)
         return resp.read()
 
 # helper to fill date url parameters
@@ -41,10 +40,10 @@ Iterates a an index file
 def index_generator(filename):
     with open(filename,"r") as source:
         reader = csv.DictReader(source)
-        for row in reader:
+        for row in reversed(list(reader)):
             date = datetime.strptime(row["Date"], DATE_FORMAT)
             price = float(row["Adj Close"])
-            yield (date, price)
+            yield date, price
 
 class CsvRepository(object):
     '''

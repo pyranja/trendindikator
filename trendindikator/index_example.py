@@ -12,5 +12,6 @@ if __name__ == "__main__":
     print "built index"
     key = index.fetch("AAPL", date(2012,1,1), date(2012,10,1))
     print "got index"
-    for day in index.get(key):
-        print str(day[0]) + " : " + str(day[1])
+    for day, price in index.get(key):
+        print str(day) + " : " + str(price)
+    index.clear()

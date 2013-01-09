@@ -1,13 +1,13 @@
 # core components test
 import unittest, logging
-import core.comps
+import core.pipe
 
 SIZE = 3
 
 class HistoryTest(unittest.TestCase):
 
     def setUp(self):
-        self.subject = core.comps.History(SIZE)
+        self.subject = core.pipe.History(SIZE)
     
     def test_initial(self):
         self.assertEqual([0] * 3, list(self.subject._values))

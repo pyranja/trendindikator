@@ -6,18 +6,25 @@ expects table.csv in same directory
 
 @author: Pyranja
 '''
-import csv
-import core.comps as comps
-import core.strategies as strats
+import csv, os, core.indicator, core.trader
+import core.pipe as pipe
+
+from core.index import CsvRepository
+from datetime import date
 
 if __name__ == "__main__":
-    sink = comps.DataSink()
-    trader = comps.Trader(strats.createSingleIndexBuySellTrader(10), sink)
-    trend = comps.Signaller(strats.createBreakRangeIndicator(3, [1,2,3]), trader, sink)
-    with open("table.csv","r") as source:
-        reader = csv.DictReader(source)
-        for idx, row in enumerate(reader):
-            trend.process(None, idx, float(row["Adj Close"]))
-    #print "Profit over all: ", sum([profit[1] for profit in sink.data[comps.KEY_PROFIT]])
-    print sink.data
+    repo = CsvRepository(os.getcwd())
+    key = repo.fetch("AAPL", date(1990,1,1), date(2012,10,1))
+    
+    history = pipe.History(5)
+    signaller = core.indicator.BreakRange(history)
+    #signaller = core.indicator.BuyAndHold()
+    trader = core.trader.SingleIndexBuySell(1000)
+    
+    index = repo.get(key)
+    
+    plot = pipe.process(index, signaller, trader, [history])
+    
+    print "\n".join([str(p.x) + ":" + str(p.y) for p in plot]) 
+    print "sum of profit :"+ str(sum([p.y[pipe.KEY_PROFIT] for p in plot]))
     
