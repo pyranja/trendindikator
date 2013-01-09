@@ -55,4 +55,4 @@ nosetests.xml
 .pydevproject
 
 # downloaded index data
-.csv
+*.csv
