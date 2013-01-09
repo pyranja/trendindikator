@@ -31,9 +31,9 @@ class Signaller():
         command, limits = self._indicator(price)
         # update graph sink
         graph_msg = { KEY_COMMAND : command }
-        for key, value in limits.iteritems:
+        for key, value in limits.iteritems():
             graph_msg[key] = (day, value)
-            self._graph.send(graph_msg)
+        self._graph.send(graph_msg)
         # forward to trader
         self._trader.process(command, day, price)
     
@@ -51,7 +51,8 @@ class Trader():
         profit = self._trading(command, price)
         # update statistics sink
         if profit:
-            self._statistics.send(KEY_PROFIT=(day, price))
+            message = { KEY_PROFIT : (day, profit)}
+            self._statistics.send(message)
 
 class DataSink():
     # gathers data from sent messages, e.g.
@@ -61,23 +62,24 @@ class DataSink():
     #   or profit
     # for each day
     def __init__(self):
-        self._data = { }
+        self.data = { }
     
-    def send(self, **message):
-        for key, value in message:
-            if not key in self._data:
-                self._data[key] = []
-            self._data[key].append(value)
-  
-    def data(self):
-        return self._data
+    def send(self, message):
+        for key, value in message.iteritems():
+            if not key in self.data:
+                self.data[key] = []
+            self.data[key].append(value)
       
 class History():
   
     def __init__(self, size):
         self._values = deque([0] * size, size)
     
-    def update(self, *values):
+    def update(self, value):
+        self._values.append(value)
+        return self
+    
+    def batch(self, values):
         for val in values:
             self._values.append(val)
         return self
@@ -85,8 +87,8 @@ class History():
     def mean(self):
         return sum(self._values) / len(self._values)
     
-    def min(self):
+    def lowest(self):
         return min(self._values)
     
-    def max(self):
+    def highest(self):
         return max(self._values)

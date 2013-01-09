@@ -12,8 +12,8 @@ class HistoryTest(unittest.TestCase):
     def test_initial(self):
         self.assertEqual([0] * 3, list(self.subject._values))
         self.assertEqual(0, self.subject.mean())
-        self.assertEqual(0, self.subject.min())
-        self.assertEqual(0, self.subject.max())
+        self.assertEqual(0, self.subject.lowest())
+        self.assertEqual(0, self.subject.highest())
     
     def test_updating(self):
         self.subject.update(1)
@@ -25,16 +25,16 @@ class HistoryTest(unittest.TestCase):
     
     def test_min(self):
         self.subject.update(1)
-        self.assertEqual(0, self.subject.min())
+        self.assertEqual(0, self.subject.lowest())
         self.subject.update(2).update(3)
-        self.assertEqual(1, self.subject.min())
+        self.assertEqual(1, self.subject.lowest())
     
     def test_max(self):
-        self.assertEqual(0, self.subject.max())
+        self.assertEqual(0, self.subject.highest())
         self.subject.update(1)
-        self.assertEqual(1, self.subject.max())
+        self.assertEqual(1, self.subject.highest())
         self.subject.update(2).update(3)
-        self.assertEqual(3, self.subject.max())
+        self.assertEqual(3, self.subject.highest())
     
     def test_mean(self):
         self.assertEqual(0, self.subject.mean())
