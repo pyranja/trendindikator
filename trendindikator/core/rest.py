@@ -153,5 +153,5 @@ if __name__ == "__main__":
         c.reset()
         log.info("Reset %s", c)
         response = c.get()
-        log.info("GET %s \nResponse : %s \nBody : %s", c, response, response.read())
+        log.info("GET %s \nResponse : %s \nStatus : %s \nBody : %s", c, response, response.status, response.read())
     log.info("Exiting")
