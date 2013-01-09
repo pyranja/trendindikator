@@ -3,15 +3,21 @@ Created on 06.11.2012
 
 @author: Manuel Graf
 '''
-import wx
 import wx.lib.plot
 from wx.lib.plot import PlotCanvas
+
+import os
+from datetime import date
+
+import core.pipe as pipe
+import core.trader
+import core.indicator
+from core.index import CsvRepository
 
 
 class MainFrame(wx.Frame):
     def __init__(self, parent, id):
         wx.Frame.__init__(self, parent, id, 'Trendindikator vs Buy and Hold', size=(1000,500))
-        
         panel = wx.Panel(self) # panel for entire frame
         
         hboxMain = wx.BoxSizer(wx.HORIZONTAL) # sizer for entire frame
@@ -90,11 +96,27 @@ class MainFrame(wx.Frame):
 
         hboxMain.Add(vboxInput)
         
+        # fetch button
+        vboxFetch = wx.BoxSizer(wx.VERTICAL)
+        
+        fetchButton = wx.Button(panel, label = "Fetch")
+        self.Bind(wx.EVT_BUTTON, self.drawGraph, fetchButton)
+        
+        # profit sum text field
+        profitText = wx.StaticText(panel, label = "Profit : None")
+        self.profitText = profitText
+        
+        vboxFetch.Add(fetchButton)
+        vboxFetch.Add(profitText)
+        
+        vboxInput.Add(vboxFetch)
+        
         # panle for plotting the graph
         canvas = PlotCanvas(panel)
         canvas.SetEnableZoom(True)
         canvas.SetEnableAntiAliasing(True)
-        canvas.Draw(drawGraph())
+        # canvas.Draw(drawGraph())
+        self.canvas = canvas
         
         hboxMain.Add(canvas, 1, wx.EXPAND)
         
@@ -129,10 +151,30 @@ class MainFrame(wx.Frame):
 #        if selection == 5103:
             self.Destroy()
         
-
         
-def drawGraph():
-    data10 = [(x,y) for x, y in zip(range(10),range(10))]
-    lines1 = wx.lib.plot.PolyLine(data10, legend= 'Red Line', colour='black')
-    
-    return wx.lib.plot.PlotGraphics([lines1],"Title", "X axis", "Y axis")
+    def drawGraph(self, event):
+        repo = CsvRepository(os.getcwd())
+        key = repo.fetch("AAPL", date(2010,1,1), date(2012,10,1))
+        
+        history = pipe.History(30)
+        signaller = core.indicator.BreakRange(history)
+        #signaller = core.indicator.BuyAndHold()
+        trader = core.trader.SingleIndexBuySell(1000)
+        
+        index = repo.get(key)
+        
+        plot = pipe.process(index, signaller, trader, [history])
+        
+        pricePlot = [(idx,p.y[pipe.KEY_PRICE]) for idx, p in enumerate(plot)]
+        priceLine = wx.lib.plot.PolyLine(pricePlot, legend= 'Price', colour='black')
+        
+        lowerPlot = [(idx,p.y[pipe.KEY_LOWER]) for idx, p in enumerate(plot)]
+        lowerLine = wx.lib.plot.PolyLine(lowerPlot, legend = "Lower Bound", colour = "red")
+        
+        upperPlot = [(idx,p.y[pipe.KEY_UPPER]) for idx, p in enumerate(plot)]
+        upperLine = wx.lib.plot.PolyLine(upperPlot, legend = "Upper Bound", colour = "green")
+        
+        lines = [ priceLine, lowerLine, upperLine ]
+        self.canvas.Draw(wx.lib.plot.PlotGraphics(lines,"Apple", "X axis", "Y axis"))
+        
+        self.profitText.SetLabel("Profit : "+ str(sum([p.y[pipe.KEY_PROFIT] for p in plot])))
