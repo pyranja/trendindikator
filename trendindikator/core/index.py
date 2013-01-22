@@ -35,7 +35,7 @@ def map_date(keys, date):
 DATE_FORMAT = "%Y-%m-%d"
 
 '''
-Iterates a an index file
+Iterates an index file
 '''
 def index_generator(filename):
     with open(filename,"r") as source:
