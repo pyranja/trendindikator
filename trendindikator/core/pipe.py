@@ -17,14 +17,15 @@ CMD_BUY = "buy"
 CMD_SELL = "sell"
 CMD_NONE = "none"
 
-def process(index, signaller, trader, histories):
+# allow multiple signaler-trader pairs and histories
+def process(index, signaler, trader, histories):
     plot = []
     for day, price in index:
         if all([h.is_ready() for h in histories]):
             now = MultiPlotPoint(day)
             plot.append(now)
-            command = signaller.process(price, now)
-            profit = trader.process(command, price, now)
+            command = signaler.process(price, now)
+            trader.process(command, price, now)
         [h.update(price) for h in histories]
     trader.finish(plot[-1])
     return plot
