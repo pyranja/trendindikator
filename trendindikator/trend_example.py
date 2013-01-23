@@ -16,8 +16,8 @@ if __name__ == "__main__":
     repo = CsvRepository(os.getcwd())
     key = repo.fetch("AAPL", date(1990,1,1), date(2012,10,1))
     
-    #signaller, histories = core.indicator.create_signaler(core.indicator.SIG_BREAK_RANGE, 0, 0, 5)
-    signaller, histories = core.indicator.create_signaler(core.indicator.SIG_BUY_HOLD, 0, 0)
+    signaller, histories = core.indicator.create_signaler(core.indicator.SIG_BREAK_RANGE, 0, 0, 5)
+    #signaller, histories = core.indicator.create_signaler(core.indicator.SIG_BUY_HOLD, 0, 0)
     trader = core.trader.create_trader(1000)
     
     index = repo.get(key)
