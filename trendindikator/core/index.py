@@ -74,6 +74,8 @@ class CsvRepository(object):
         @return: key of created index on success
         @raise exception: on webservice call failure or io failure 
         '''
+        if start >= end:
+            raise ValueError("Starting date %s must be before ending date %s" % (start, end))
         key = str(self.__next_key)
         self.__next_key += 1
         filename = self.__base + "/index-" + key + ".csv"
