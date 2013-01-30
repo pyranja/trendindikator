@@ -11,16 +11,24 @@ import pipe
 # indicator types
 SIG_BUY_HOLD = "buy hold"
 SIG_BREAK_RANGE = "break range"
-SIG_MOVING_AVERAGE = "moving average"
+SIG_SIMPLE_MOVING_AVERAGE = "simple moving average"
+SIG_DUAL_MOVING_AVERAGE = "dual moving average"
+
+def pack(name, trader, *args):
+    pipe_spec = pipe.PipeSpec()
+    signaler, histories = create_signaler(*args)
+    pipe_spec.sigtrader.append( (name, signaler, trader) )
+    pipe_spec.histories += histories
+    return pipe_spec
 
 # static factory method
-def create_signaler(sig_type, sensitivity, threshold, *args):
+def create_signaler(sig_type, sensitivity, envelope_factor, *args):
     '''
     Create a signaler and its histories according to given arguments. Return the
     created signaler and a list of histories used by it (possibly empty).'''
     histories = []
     product = None
-    modifier = create_thresholder(threshold)    # increases / decreases limits
+    modifier = create_envelope(envelope_factor)    # increases / decreases limits
     # switch requested type
     if sig_type == SIG_BUY_HOLD:
         product = BuyAndHold()
@@ -33,8 +41,18 @@ def create_signaler(sig_type, sensitivity, threshold, *args):
             raise ValueError("Expected single additional argument for %s but received %s" % (sig_type, args))
         history = pipe.History(int(args[0]))
         product = BreakRange(history, modifier)
-        histories.append(history)
-    elif sig_type == SIG_MOVING_AVERAGE:
+        histories = [history]
+    elif sig_type == SIG_SIMPLE_MOVING_AVERAGE:
+        '''
+        expecting one argument:
+           length of average
+        '''
+        if len(args) != 1:
+            raise ValueError("Expected two additional arguments for %s but received %s" % (sig_type, args))
+        history = pipe.History(int(args[0]))
+        product = SimpleMovingAverage(history, modifier)
+        histories = [history]
+    elif sig_type == SIG_DUAL_MOVING_AVERAGE:
         '''
         expecting two arguments:
            length of fast history 
@@ -44,21 +62,21 @@ def create_signaler(sig_type, sensitivity, threshold, *args):
             raise ValueError("Expected two additional arguments for %s but received %s" % (sig_type, args))
         fast = pipe.History(int(args[0]))
         slow = pipe.History(int(args[1]))
-        product = MovingAverage(fast, slow, modifier)
-        histories += [fast, slow]
+        product = DualMovingAverage(fast, slow, modifier)
+        histories = [fast, slow]
     else:   # default
-        raise ValueError("Given type %s does not available" % sig_type)
+        raise ValueError("Given type %s is not available" % sig_type)
     # end switch
     # wrap with damper if sensitivity > 0
     if sensitivity > 0:
         product = Damper(product, sensitivity)
     return product, histories
 
-def create_thresholder(threshold):
-    if threshold > 1.0 or threshold < 0.0:
-        raise ValueError("Threshold factor must be in 0..1 but was %f" % threshold)
+def create_envelope(factor):
+    if factor > 1.0 or factor < 0.0:
+        raise ValueError("Threshold factor must be in 0..1 but was %f" % factor)
     def product(value):
-        return threshold * value
+        return factor * value
     return product
 
 class Damper():
@@ -97,12 +115,14 @@ class BreakRange():
         
     def process(self, price, plot):
         lower = self.range.lowest()
+        lower = lower - self.mod(lower)
         upper = self.range.highest()
+        upper = upper + self.mod(upper)
         plot.y[pipe.KEY_LOWER] = lower
         plot.y[pipe.KEY_UPPER] = upper
-        if price > (upper + self.mod(upper)):
+        if price > upper:
             command = pipe.CMD_BUY
-        elif price < (lower - self.mod(lower)):
+        elif price < lower:
             command = pipe.CMD_SELL
         else:
             command = pipe.CMD_NONE
@@ -123,16 +143,52 @@ class BuyAndHold():
             command = pipe.CMD_BUY
         return command
     
-class MovingAverage():
+class SimpleMovingAverage():
+    '''
+    Signal BUY if instrument above average and vice versa
+    '''
+    
+    def __init__(self, history, modifier):
+        self.history = history
+        self.modifier = modifier
+        
+    def process(self, price, plot):
+        command = pipe.CMD_NONE
+        average = self.history.mean()
+        offset = self.modifier(average)
+        plot.y[pipe.KEY_LOWER] = average - offset
+        plot.y[pipe.KEY_UPPER] = average + offset
+        if price > average + offset:
+            command = pipe.CMD_BUY
+        elif price < average - offset:
+            command = pipe.CMD_SELL
+        return command
+    
+class DualMovingAverage():
     '''
     Signal BUY if shorter average is above longer and vice versa
     '''
-    
+    # maintains type of last crossover:
+    #    -1 -> top-down cross
+    #    0  -> no cross
+    #    1  -> bottom-up cross 
     def __init__(self, fast, slow, modifier):
         self.fast = fast
         self.slow = slow
         self.mod = modifier
+        self.last_cross = 0     # type of last crossover
     
     def process(self, price, plot):
-        pass
+        command = pipe.CMD_NONE
+        slow_avg = self.slow.mean()
+        fast_avg = self.fast.mean()
+        offset = self.mod(price)
+        plot.y[pipe.KEY_LOWER] = slow_avg
+        plot.y[pipe.KEY_UPPER] = fast_avg
+        if fast_avg > slow_avg + offset:
+            command = pipe.CMD_BUY
+        elif fast_avg < slow_avg- offset:
+            command = pipe.CMD_SELL
+        return command
+        
         
