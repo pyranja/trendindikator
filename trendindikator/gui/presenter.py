@@ -104,21 +104,22 @@ class SettingsPresenter(object):
         self.validate_indicator(v.indicator2)
                 
     def validate_indicator(self, i):
+        v = self.view
         if i.signal_threshold < 0:
            i.signal_threshold = 0
-           i.notify("Signal threshold must be positive", i)
+           v.notify("Signal threshold must be positive", i)
         if i.envelope_factor < 0.0 or i.envelope_factor > 1.0:
             i.envelop_factor = 0.0
-            i.notify("Envelope factor must be in [0..1]", i)
+            v.notify("Envelope factor must be in [0..1]", i)
         if not i.signaler_type in SIG_TYPES:
             i.signaler_type = core.indicator.SIG_BUY_HOLD
-            i.notify("Invalid signaler type", i)
+            v.notify("Invalid signaler type", i)
         sig_type = i.signaler_type
         # need one argument
         if sig_type == core.indicator.SIG_BREAK_RANGE or sig_type == core.indicator.SIG_SIMPLE_MOVING_AVERAGE:
             if i.history_param1 < 0:
                 i.history_param1 = 0
-                i.notify("Chosen signaler needs one positive parameter", i)
+                v.notify("Chosen signaler needs one positive parameter", i)
         elif sig_type == core.indicator.SIG_DUAL_MOVING_AVERAGE:
             if i.history_param2 < 0:
                 i.history_param1 = 0
@@ -127,7 +128,7 @@ class SettingsPresenter(object):
                 i.history_param2 = 0
                 error = True
             if error:
-                i.notify("Chosen signaler need two positive parameters", i)
+                v.notify("Chosen signaler need two positive parameters", i)
 
 class GraphPresenter(object):
     '''
