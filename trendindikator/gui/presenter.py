@@ -130,6 +130,9 @@ class SettingsPresenter(object):
             if error:
                 v.notify("Chosen signaler need two positive parameters", i)
 
+    def onChangeTrendindicator(self, evt):
+        raise ValueError(view.comboTrendindicator.GetValue(self))
+
 class GraphPresenter(object):
     '''
     Prepares graph data for plotting.

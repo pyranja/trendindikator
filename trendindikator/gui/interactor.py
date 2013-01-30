@@ -1,7 +1,7 @@
 import wx
 
 class Interactor(object):
-	def setup(self, presenter, view):
+	def __init__(self, presenter, view):
         self.presenter = presenter
         self.view = view
 		view.Bind(wx.EVT_CLOSE, self.presenter.closeWindow(evt))
