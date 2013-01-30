@@ -13,6 +13,7 @@ if __name__ == '__main__':
     app = wx.PySimpleApp()
     frame = gui.view.MainFrame(parent = None, id = -1) 
     frame.Show()
-    self.interactor = gui.interactor.Interactor(gui.presenter, gui.view)
+    presenter = gui.presenter.SettingsPresenter(frame, None, None)
+    interactor = gui.interactor.Interactor(presenter, frame)
   #  self.interactor.setup()
     app.MainLoop()

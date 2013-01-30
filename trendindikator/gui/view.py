@@ -73,8 +73,8 @@ class MainFrame(wx.Frame):
         hboxTrendindicatorValue = wx.BoxSizer(wx.HORIZONTAL)
         
         trendindicatorList = ["Buy/Hold", "Break Range", "simple Mov. Averages", "dual Mov. Averages"]
-        comboTrendindicator = wx.ComboBox(panel, choices = trendindicatorList, style=wx.CB_READONLY)
-        hboxTrendindicatorValue.Add(comboTrendindicator)
+        self.comboTrendindicator = wx.ComboBox(panel, choices = trendindicatorList, style = wx.CB_READONLY)
+        hboxTrendindicatorValue.Add(self.comboTrendindicator)
         
         #vertical static line seperating trendindicator-combobox from trendindicator-options
 #        vline = wx.StaticLine(panel, -1, style = wx.LI_VERTICAL)
@@ -101,6 +101,29 @@ class MainFrame(wx.Frame):
         hboxTrendindicatorValue.Add(vboxTrendindicatorValueOption, flag = wx.LEFT, border = 83)
 
         vboxInput.Add(hboxTrendindicatorValue, flag = wx.EXPAND|wx.LEFT|wx.RIGHT, border = 10)
+
+        # horizontal box containing trader
+        vboxTraderValue = wx.BoxSizer(wx.VERTICAL)
+        
+        hboxTraderValueType = wx.BoxSizer(wx.HORIZONTAL)
+        self.staticTextTrader = wx.StaticText(panel, label='Trader')
+        hboxTraderValueType.Add(self.staticTextTrader)
+        
+        self.trader_type_dynamic = wx.CheckBox(self, label="dynamic")
+        hboxTraderValueType.Add(self.trader_type_dynamic)
+        
+        self.trader_type_reverse = wx.CheckBox(self, label="reverse")
+        hboxTraderValueType.Add(self.trader_type_reverse)
+
+        vboxTraderValue.Add(hboxTraderValueType)
+        
+        self.initial_funds = wx.lib.intctrl.IntCtrl(panel)
+        vboxTraderValue.Add(self.initial_funds)
+
+        self.trader_mode_list = ["ShortLong", "Short", "Long"]
+        self.trader_mode = wx.ComboBox(panel, choices = self.trader_mode_list, style = wx.CB_READONLY)
+        vboxTraderValue.Add(self.trader_mode)
+        vboxInput.Add(vboxTraderValue)#, flag = wx.EXPAND|wx.LEFT|wx.RIGHT, border = 10)
 
         hboxMain.Add(vboxInput)
         
