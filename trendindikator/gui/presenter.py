@@ -5,6 +5,7 @@ Presenter / ViewModel for trendindicator app
 '''
 import core.trader
 import wx.lib.plot
+from core import analyzer
 
 TRADER_MODES = [core.trader.TRADE_SHORTLONG, core.trader.TRADE_SHORT, core.trader.TRADE_LONG]
 SIG_TYPES = [core.indicator.SIG_BUY_HOLD, core.indicator.SIG_BUY_HOLD, core.indicator.SIG_SIMPLE_MOVING_AVERAGE, core.indicator.SIG_DUAL_MOVING_AVERAGE]
@@ -14,11 +15,12 @@ class SettingsPresenter(object):
     Accepts and validates settings input and invokes processing. 
     '''
 
-    def __init__(self, view, index_repo):
+    def __init__(self, view, graphics, index_repo):
         '''
         Requires its view and processing core.
         '''
         self.view = view
+        self.graphics = graphics
         self.idx_repo = index_repo
         self.idx_key = None
     
@@ -35,11 +37,10 @@ class SettingsPresenter(object):
         try:
             self.view.freeze()
             self.idx_key = self.idx_repo.fetch(symbol, start, end)
+            self.view.can_process = True
+            self.graphics.draw_index(self.idx_key, symbol)
         except StandardError as e:
             self.view.notify(e)
-        else:
-            # TODO raise index changed event or call draw in graphics
-            self.view.can_process = True
         finally:
             self.view.thaw()
 
@@ -51,22 +52,31 @@ class SettingsPresenter(object):
         v.freeze()
         pipe = core.pipe.PipeSpec()
         try:
-            pipe.add(self.make_actor(v, v.indicator1))
-            pipe.add(self.make_actor(v, v.indicator2))
+            actor_ids = []
+            actor = self.make_actor(v, v.indicator1)
+            pipe.add(actor)
+            actor_ids.append(actor.name)
+            actor = self.make_actor(v, v.indicator2)
+            pipe.add(actor)
+            actor_ids.append(actor.name)
             index = self.idx_repo.get(self.idx_key)
             plot = pipe.invoke(index)
+            # make statistics
+            statistics = []
+            for actor_id in actor_ids:
+                 stats = analyzer.Statistics(actor_id, v.initial_funds)
+                 stats.feed(plot, actor_id)
+                 statistics.append(stats)
+            # call graphics to draw plot
+            self.graphics.draw_plot(plot)
         except StandardError as e:
             v.notify(e)
-        else:
-            # make statistics
-            # call graphics to draw plot
-            pass
         finally:
             v.thaw()
         
     def make_actor(self, v, i):
         actor = core.pipe.Actor(i.name)
-        actor.trader = core.trader.create_trader(i.initial_funds, i.dynamic, i.trader_mode, i.reverse)
+        actor.trader = core.trader.create_trader(v.initial_funds, v.dynamic, v.trader_mode, v.reverse)
         args = []
         if i.history_param1 is not None:
             args.append(i.history_param1)
@@ -148,5 +158,12 @@ class GraphPresenter(object):
         '''
         Print gathered statistics line by line 
         '''
-        pass
+        text = ""
+        for stats in statistics:
+            text += "Indicator {} :\n".format(statistics.name)
+            text += "transactions : {} | total yield : {:.2} <> relative {:.2%}\n".format(statistics.total_yield, statistics.relative_yield, statistics.tx_count)
+            text += "yields : min {:.2} , max {:.2} , average {:.2%} | volatility {:.2%}\n".format(statistics.min_yield, statistics.max_yield, statistics.average_yield, statistics.volatility)
+            text += "{:=^30}\n".format("=")
+        self.view.report(text)
+        
     

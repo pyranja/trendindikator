@@ -6,7 +6,6 @@ from collections import deque
 
 # predefined plot keys
     # index plot keys
-KEY_INDEX = "index"         # key of index plot
 KEY_PRICE = "price"         # current price of share
     # signaler plot keys
 KEY_LOWER = "lower"         # lower bound of indicator
@@ -110,6 +109,10 @@ class MultiValuePoint(object):
         
     def get_all_contexts(self):
         return self._y
+    
+    @property
+    def context_names(self):
+        return self._y.keys()
         
     @property        
     def y(self):
