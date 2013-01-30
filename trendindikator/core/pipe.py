@@ -5,8 +5,6 @@
 from collections import deque
 
 # predefined plot keys
-    # index plot keys
-KEY_PRICE = "price"         # current price of share
     # signaler plot keys
 KEY_LOWER = "lower"         # lower bound of indicator
 KEY_UPPER = "upper"         # upper bound of indicator

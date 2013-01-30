@@ -38,6 +38,7 @@ class SettingsPresenter(object):
             self.view.freeze()
             self.idx_key = self.idx_repo.fetch(symbol, start, end)
             self.view.can_process = True
+            self.view.notify("Loaded %s" % symbol)
             self.graphics.draw_index(self.idx_key, symbol)
         except StandardError as e:
             self.view.notify(e)
@@ -67,8 +68,9 @@ class SettingsPresenter(object):
                  stats = analyzer.Statistics(actor_id, v.initial_funds)
                  stats.feed(plot, actor_id)
                  statistics.append(stats)
+            self.graphics.print_statistics(statistics)
             # call graphics to draw plot
-            self.graphics.draw_plot(plot)
+            self.graphics.draw_plot(plot, actor_ids[0]) # only plot first indicator
         except StandardError as e:
             v.notify(e)
         finally:
@@ -148,11 +150,44 @@ class GraphPresenter(object):
             index_line = wx.lib.plot.PolyLine(index_points, legend = "index")
             self.view.canvas.Draw(wx.lib.plot.PlotGraphics([index_line], title = stock_name, xLabel = "", yLabel = "price"))
             
-    def draw_plot(self, plot):
+    def draw_plot(self, plot, actor_id, stock_name):
         '''
         Draw results of pipe processing
         '''
-        pass
+        index_points = []
+        lower_points = []
+        upper_points = []
+        hold_points = []
+        short_marker = []
+        long_marker = []
+        clear_marker = []
+        # fill point holder
+        for idx, point in enumerate(plot):
+            point.context = actor_id
+            index_point = (idx, point.price)
+            index_points.append(index_point)
+            lower_points.append((idx, point[core.pipe.KEY_LOWER]))
+            upper_points.append((idx, point[core.pipe.KEY_UPPER]))
+            hold_points.append((idx, point[core.pipe.KEY_HOLD_AT]))
+            action = point[core.pipe.KEY_ACTION]
+            if action == core.pipe.ACTION_CLEAR:
+                clear_marker.append(index_point)
+            elif action == core.pipe.ACTION_LONG:
+                long_marker.append(index_point)
+            elif action == core.pipe.ACTION_SHORT:
+                short_marker.append(index_point)
+        # convert to polylines and markers
+        lines = []
+        lines.append(wx.lib.plot.PolyLine(index_points, legend = "index"))
+        lines.append(wx.lib.plot.PolyLine(lower_points, legend = "lower bound", colour = "red"))
+        lines.append(wx.lib.plot.PolyLine(upper_points, legend = "upper bound", colour = "green"))
+        lines.append(wx.lib.plot.PolyLine(hold_points, legend = "held position", colour = "blue"))
+        lines.append(wx.lib.plot.PolyMarker(short_marker, legend = "short position", colour = "orange", marker="triangle_down"))
+        lines.append(wx.lib.plot.PolyMarker(long_marker, legend = "long position", colour = "violet", marker="triangle"))
+        lines.append(wx.lib.plot.PolyMarker(clear_marker, legend = "cleared position", colour = "yellow", marker="cross"))
+        # pack
+        full_plot = wx.lib.plot.PlotGraphics(lines, title = stock_name, xLabel = "", yLabel = "price")
+        self.view.canvas.Draw(full_plot) 
             
     def print_statistics(self, statistics):
         '''
@@ -160,9 +195,9 @@ class GraphPresenter(object):
         '''
         text = ""
         for stats in statistics:
-            text += "Indicator {} :\n".format(statistics.name)
-            text += "transactions : {} | total yield : {:.2} <> relative {:.2%}\n".format(statistics.total_yield, statistics.relative_yield, statistics.tx_count)
-            text += "yields : min {:.2} , max {:.2} , average {:.2%} | volatility {:.2%}\n".format(statistics.min_yield, statistics.max_yield, statistics.average_yield, statistics.volatility)
+            text += "Indicator {} :\n".format(stats.name)
+            text += "transactions : {} | total yield : {:.2} <> relative {:.2%}\n".format(stats.total_yield, stats.relative_yield, stats.tx_count)
+            text += "yields : min {:.2} , max {:.2} , average {:.2%} | volatility {:.2%}\n".format(stats.min_yield, stats.max_yield, stats.average_yield, stats.volatility)
             text += "{:=^30}\n".format("=")
         self.view.report(text)
         
