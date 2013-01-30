@@ -42,7 +42,7 @@ class SettingsPresenter(object):
             self.view.notify("Loaded %s" % symbol)
             self.graphics.draw_index(self.idx_key, symbol)
         except StandardError as e:
-            self.view.notify(e)
+            self.view.notify("Error on index update : %r" % e)
         finally:
             self.view.thaw()
 
@@ -55,10 +55,10 @@ class SettingsPresenter(object):
         pipe = core.pipe.PipeSpec()
         try:
             actor_ids = []
-            actor = self.make_actor(v, v.indicator1)
+            actor = self._make_actor(v, v.indicator1)
             pipe.add(actor)
             actor_ids.append(actor.name)
-            actor = self.make_actor(v, v.indicator2)
+            actor = self._make_actor(v, v.indicator2)
             pipe.add(actor)
             actor_ids.append(actor.name)
             index = self.idx_repo.get(self.idx_key)
@@ -73,11 +73,11 @@ class SettingsPresenter(object):
             # call graphics to draw plot
             self.graphics.draw_plot(plot, actor_ids[0]) # only plot first indicator
         except StandardError as e:
-            v.notify(e)
+            v.notify("Error on pipe processing : %r" % e)
         finally:
             v.thaw()
         
-    def make_actor(self, v, i):
+    def _make_actor(self, v, i):
         actor = core.pipe.Actor(i.name)
         actor.trader = core.trader.create_trader(v.initial_funds, v.dynamic, v.trader_mode, v.reverse)
         args = []
@@ -101,12 +101,12 @@ class SettingsPresenter(object):
             v.trader_mode = core.trader.TRADE_SHORTLONG
             v.notify("Invalid trader mode")
         # verify signaler
-        self.display_signaler_options(v.indicator1)
-        self.validate_indicator(v.indicator1)
-        self.display_signaler_options(v.indicator2)
-        self.validate_indicator(v.indicator2)
+        self._display_signaler_options(v.indicator1)
+        self._validate_indicator(v.indicator1)
+        self._display_signaler_options(v.indicator2)
+        self._validate_indicator(v.indicator2)
 
-    def display_signaler_options(self, iv):
+    def _display_signaler_options(self, iv):
         sig_type = iv.signaler_type
         if sig_type == core.indicator.SIG_BUY_HOLD:
             del iv.history_param1
@@ -121,7 +121,7 @@ class SettingsPresenter(object):
             if iv.history_param2 is None:
                 iv.history_param2 = 0
                     
-    def validate_indicator(self, i):
+    def _validate_indicator(self, i):
         v = self.view
         if i.signal_threshold < 0:
            i.signal_threshold = 0
@@ -166,7 +166,7 @@ class GraphPresenter(object):
         try:
             index = self.repo.get(key)
         except StandardError as e:
-            self.view.notify(e)
+            self.view.notify("Error on reading index %s : %r" % (key,e))
         else:
             index_points = [(idx, point.price) for idx, point in enumerate(index)]
             index_line = wx.lib.plot.PolyLine(index_points, legend = "index")

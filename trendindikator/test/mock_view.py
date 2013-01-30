@@ -13,8 +13,8 @@ class GraphView(object):
             print a_thing
         self.canvas = print_a_thing
     
-    def notify(self, *message):
-        print [str(element) + "\n" for element in message]    
+    def notify(self, message):
+        print message
         
     def report(self, text):
         print text
@@ -103,8 +103,8 @@ class MockView(object):
         else:
             raise ValueError("Not freezed")
         
-    def notify(self, *message):
-        print [str(element) + "\n" for element in message]    
+    def notify(self, message):
+        print message
 
     # --> index properties        
     @property

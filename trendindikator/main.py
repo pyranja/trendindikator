@@ -16,3 +16,5 @@ if __name__ == '__main__':
     graph_presenter = gui.presenter.GraphPresenter(graph_view, repo)
     main_presenter = gui.presenter.SettingsPresenter(view, graph_presenter, repo)
     main_presenter.validate_view()
+    main_presenter.invoke_pipe()
+    main_presenter.update_index()
