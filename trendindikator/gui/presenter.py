@@ -4,6 +4,8 @@ Presenter / ViewModel for trendindicator app
 @author: Pyranja
 '''
 import core.trader
+import core.indicator
+import core.analyzer
 import wx.lib.plot
 from core import analyzer
 import core.indicator
@@ -38,11 +40,10 @@ class SettingsPresenter(object):
         try:
             self.view.freeze()
             self.idx_key = self.idx_repo.fetch(symbol, start, end)
-            self.view.can_process = True
             self.view.notify("Loaded %s" % symbol)
             self.graphics.draw_index(self.idx_key, symbol)
         except StandardError as e:
-            self.view.notify(e)
+            self.view.notify("Error on index update : %r" % e)
         finally:
             self.view.thaw()
 
@@ -55,10 +56,10 @@ class SettingsPresenter(object):
         pipe = core.pipe.PipeSpec()
         try:
             actor_ids = []
-            actor = self.make_actor(v, v.indicator1)
+            actor = self._make_actor(v, v.indicator1)
             pipe.add(actor)
             actor_ids.append(actor.name)
-            actor = self.make_actor(v, v.indicator2)
+            actor = self._make_actor(v, v.indicator2)
             pipe.add(actor)
             actor_ids.append(actor.name)
             index = self.idx_repo.get(self.idx_key)
@@ -66,18 +67,18 @@ class SettingsPresenter(object):
             # make statistics
             statistics = []
             for actor_id in actor_ids:
-                 stats = analyzer.Statistics(actor_id, v.initial_funds)
+                 stats = core.analyzer.Statistics(actor_id, v.initial_funds)
                  stats.feed(plot, actor_id)
                  statistics.append(stats)
             self.graphics.print_statistics(statistics)
             # call graphics to draw plot
             self.graphics.draw_plot(plot, actor_ids[0]) # only plot first indicator
         except StandardError as e:
-            v.notify(e)
+            v.notify("Error on pipe processing : %r" % e)
         finally:
             v.thaw()
         
-    def make_actor(self, v, i):
+    def _make_actor(self, v, i):
         actor = core.pipe.Actor(i.name)
         actor.trader = core.trader.create_trader(v.initial_funds, v.dynamic, v.trader_mode, v.reverse)
         args = []
@@ -98,29 +99,46 @@ class SettingsPresenter(object):
             v.initial_funds = 0
             v.notify("Initial funds must be positive")
         if not v.trader_mode in TRADER_MODES:
-            v.trader_mode = core.indicator.SIG_BUY_HOLD
+            v.trader_mode = core.trader.TRADE_SHORTLONG
             v.notify("Invalid trader mode")
         # verify signaler
-        self.validate_indicator(v.indicator1)
-        self.validate_indicator(v.indicator2)
-                
-    def validate_indicator(self, i):
+        self._display_signaler_options(v.indicator1)
+        self._validate_indicator(v.indicator1)
+        self._display_signaler_options(v.indicator2)
+        self._validate_indicator(v.indicator2)
+
+    def _display_signaler_options(self, iv):
+        sig_type = iv.signaler_type
+        if sig_type == core.indicator.SIG_BUY_HOLD:
+            del iv.history_param1
+            del iv.history_param2
+        elif sig_type in (core.indicator.SIG_BREAK_RANGE, core.indicator.SIG_SIMPLE_MOVING_AVERAGE):
+            if iv.history_param1 is None:
+                iv.history_param1 = 0
+            del iv.history_param2
+        elif sig_type == core.indicator.SIG_DUAL_MOVING_AVERAGE:
+            if iv.history_param1 is None:
+                iv.history_param1 = 0
+            if iv.history_param2 is None:
+                iv.history_param2 = 0
+                    
+    def _validate_indicator(self, i):
         v = self.view
         if i.signal_threshold < 0:
            i.signal_threshold = 0
-           v.notify("Signal threshold must be positive", i)
+           v.notify("%s : Signal threshold must be positive" % i.name)
         if i.envelope_factor < 0.0 or i.envelope_factor > 1.0:
             i.envelop_factor = 0.0
-            v.notify("Envelope factor must be in [0..1]", i)
+            v.notify("%s : Envelope factor must be in [0..1]" % i.name)
         if not i.signaler_type in SIG_TYPES:
             i.signaler_type = core.indicator.SIG_BUY_HOLD
-            v.notify("Invalid signaler type", i)
+            v.notify("%s : Invalid signaler type" % i.name)
         sig_type = i.signaler_type
         # need one argument
         if sig_type == core.indicator.SIG_BREAK_RANGE or sig_type == core.indicator.SIG_SIMPLE_MOVING_AVERAGE:
             if i.history_param1 < 0:
                 i.history_param1 = 0
-                v.notify("Chosen signaler needs one positive parameter", i)
+                v.notify("%s : Chosen signaler needs one positive parameter" % i.name)
         elif sig_type == core.indicator.SIG_DUAL_MOVING_AVERAGE:
             if i.history_param2 < 0:
                 i.history_param1 = 0
@@ -129,10 +147,10 @@ class SettingsPresenter(object):
                 i.history_param2 = 0
                 error = True
             if error:
-                v.notify("Chosen signaler need two positive parameters", i)
+                v.notify("%s : Chosen signaler needs two positive parameters" % i.name)
 
     def onChangeTrendindicator(self, evt):
-        raise ValueError(self.view.comboTrendindicator.GetValue())
+        raise ValueError(self.view.comboTrendindicator.GetValue(self))
 
 class GraphPresenter(object):
     '''
@@ -149,7 +167,7 @@ class GraphPresenter(object):
         try:
             index = self.repo.get(key)
         except StandardError as e:
-            self.view.notify(e)
+            self.view.notify("Error on reading index %s : %r" % (key,e))
         else:
             index_points = [(idx, point.price) for idx, point in enumerate(index)]
             index_line = wx.lib.plot.PolyLine(index_points, legend = "index")
