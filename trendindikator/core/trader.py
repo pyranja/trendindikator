@@ -8,6 +8,8 @@ Trading strategies
 import pipe
 
 def create_trader(starting_funds, dynamic_budget = False, short_sell = False, reverse = False):
+    if starting_funds < 0:
+        raise ValueError("Initial funds must greater zero, bute were %f" % starting_funds)
     budget = DynamicBudget(starting_funds) if dynamic_budget else StaticBudget(starting_funds)
     product = ShortLong(budget) if short_sell else OnlyLong(budget)
     product = SignalReverser(product) if reverse else product

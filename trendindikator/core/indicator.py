@@ -22,15 +22,23 @@ def pack(name, trader, *args):
     return pipe_spec
 
 # static factory method
-def create_signaler(sig_type, sensitivity, envelope_factor, *args):
+def create_signaler(sig_type, signal_threshold, envelope_factor, *args):
     '''
     Create a signaler and its histories according to given arguments. Return the
-    created signaler and a list of histories used by it (possibly empty).'''
+    created signaler and a list of histories used by it (possibly empty).
+    '''
+    if signal_threshold < 0:
+        raise ValueError("Indicator sensitivity must be positive, but was %f" % signal_threshold)
     histories = []
     product = None
     modifier = create_envelope(envelope_factor)    # increases / decreases limits
     # switch requested type
     if sig_type == SIG_BUY_HOLD:
+        '''
+        expecting no argument
+        '''
+        if len(args) != 0:
+            raise ValueError("Expected no additional argument for %s but received %s" % (sig_type, args))
         product = BuyAndHold()
     elif sig_type == SIG_BREAK_RANGE:
         '''
@@ -68,8 +76,8 @@ def create_signaler(sig_type, sensitivity, envelope_factor, *args):
         raise ValueError("Given type %s is not available" % sig_type)
     # end switch
     # wrap with damper if sensitivity > 0
-    if sensitivity > 0:
-        product = Damper(product, sensitivity)
+    if signal_threshold > 0:
+        product = Damper(product, signal_threshold)
     return product, histories
 
 def create_envelope(factor):
@@ -86,6 +94,8 @@ class Damper():
     '''
     
     def __init__(self, delegate, sensitivity):
+        if sensitivity < 0:
+            raise ValueError("Indicator sensitivity must be positive, but was %f" % sensitivity)
         self.delegate = delegate
         self.sensitivity = sensitivity
         self.last_command = None
