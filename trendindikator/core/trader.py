@@ -7,11 +7,22 @@ Trading strategies
 '''
 import pipe
 
-def create_trader(starting_funds, dynamic_budget = False, short_sell = False, reverse = False):
+TRADE_SHORTLONG = "short and long"
+TRADE_SHORT = "short only"
+TRADE_LONG = "long only"
+
+def create_trader(starting_funds, dynamic_budget = False, mode = TRADE_SHORTLONG, reverse = False):
     if starting_funds < 0:
-        raise ValueError("Initial funds must greater zero, bute were %f" % starting_funds)
+        raise ValueError("Initial funds must greater zero, but were %f" % starting_funds)
     budget = DynamicBudget(starting_funds) if dynamic_budget else StaticBudget(starting_funds)
-    product = ShortLong(budget) if short_sell else OnlyLong(budget)
+    if mode == TRADE_SHORTLONG:
+        product = ShortLong(budget)
+    elif mode == TRADE_SHORT:
+        product = OnlyShort(budget)
+    elif mode == TRADE_LONG:
+        product = OnlyLong(budget)
+    else:
+        raise ValueError("Given trade mode %s is not available" % mode) 
     product = SignalReverser(product) if reverse else product
     return product
     

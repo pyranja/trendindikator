@@ -70,6 +70,8 @@ def create_signaler(sig_type, signal_threshold, envelope_factor, *args):
             raise ValueError("Expected two additional arguments for %s but received %s" % (sig_type, args))
         fast = pipe.History(int(args[0]))
         slow = pipe.History(int(args[1]))
+        if fast >= slow:
+            raise ValueError("Fast average length (%f) must be smaller than slow average length (%f) in %s" % (fast, slow, sig_type))
         product = DualMovingAverage(fast, slow, modifier)
         histories = [fast, slow]
     else:   # default
