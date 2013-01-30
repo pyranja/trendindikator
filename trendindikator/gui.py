@@ -83,6 +83,10 @@ class MainFrame(wx.Frame):
         
         # vertical box nested in 'hboxTrendindicatorValue' containing trendindicator-options
         vboxTrendindicatorValueOption = wx.BoxSizer(wx.VERTICAL)
+
+        numCtrlEnvelopFactor = wx.NumCtrl()
+        numCtrlEnvelopFactor.SetMin(self, 0)
+        vboxTrendindicatorValueOption.Add(numCtrlEnvelopFactor)
         
         toggleButtonOption1 = wx.ToggleButton(panel, label = 'Option 1')
         vboxTrendindicatorValueOption.Add(toggleButtonOption1)
