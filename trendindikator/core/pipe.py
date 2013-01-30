@@ -53,11 +53,6 @@ def process(index, actors, histories):
                 command = signaler.process(price, now)
                 trader.process(command, price, now)
         [h.update(price) for h in histories]
-    # TODO remove this -> redundant virtual profit and yield is always calculated
-    last_day = plot[-1]
-    for name, _, trader in actors:
-        last_day.context = name
-        trader.finish(last_day)
     return plot
       
 class Actor(object):

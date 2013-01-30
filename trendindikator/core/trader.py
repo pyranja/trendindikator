@@ -10,8 +10,7 @@ import pipe
 def create_trader(starting_funds, dynamic_budget = False, short_sell = False, reverse = False):
     budget = DynamicBudget(starting_funds) if dynamic_budget else StaticBudget(starting_funds)
     product = ShortLong(budget) if short_sell else OnlyLong(budget)
-    if reverse:
-        product = SignalReverser(product)
+    product = SignalReverser(product) if reverse else product
     return product
     
 class StaticBudget():
@@ -83,9 +82,6 @@ class SignalReverser(object):
         # NONE stays
         return self.delegate.process(command, price, plot)
 
-    def finish(self, *args):
-        return self.delegate.finish(*args)
-
 class AbstractTrader(object):
     '''Template for a trader'''
     def __init__(self, budget):
@@ -114,6 +110,12 @@ class AbstractTrader(object):
         return profit
     
     def plot(self, plot, command, price):
+        '''
+        add statistics to plot:
+        - received command
+        - price of held position
+        - calculated virtual profit and yield at this time 
+        '''
         plot.y[pipe.KEY_COMMAND] = command
         virtual_profit = self.position.clear(price) if self.position is not None else 0
         plot.y[pipe.KEY_PROFIT] = virtual_profit
@@ -126,16 +128,6 @@ class AbstractTrader(object):
     def position_for(self, command, price):
         '''Create a new position for given command and price.'''
         raise NotImplementedError("Missing template method")
-    
-    def finish(self, plot):
-        '''Clear any outstanding position.'''
-        profit = 0
-        if self.position is not None:
-            profit = self.position.clear(self.last_price)
-        plot.y[pipe.KEY_PROFIT] = profit
-        plot.y[pipe.KEY_YIELD] = self.budget.current_yield(profit)
-        plot.y[pipe.KEY_ACTION] = pipe.ACTION_CLEAR
-        return profit
 
 class ShortLong(AbstractTrader):
     '''Uses SHORT and LONG positions.'''
