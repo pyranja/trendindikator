@@ -182,29 +182,3 @@ class MainFrame(wx.Frame):
 #        if selection == 5103:
             self.Destroy()
         
-    def drawGraph(self, evt):
-        repo = CsvRepository(os.getcwd())
-        key = repo.fetch("AAPL", date(2010,1,1), date(2012,10,1))
-        
-        history = pipe.History(30)
-        signaller = core.indicator.BreakRange(history)
-        #signaller = core.indicator.BuyAndHold()
-        trader = core.trader.SingleIndexBuySell(1000)
-        
-        index = repo.get(key)
-        
-        plot = pipe.process(index, signaller, trader, [history])
-        
-        pricePlot = [(idx,p.y[pipe.KEY_PRICE]) for idx, p in enumerate(plot)]
-        priceLine = wx.lib.plot.PolyLine(pricePlot, legend= 'Price', colour='black')
-        
-        lowerPlot = [(idx,p.y[pipe.KEY_LOWER]) for idx, p in enumerate(plot)]
-        lowerLine = wx.lib.plot.PolyLine(lowerPlot, legend = "Lower Bound", colour = "red")
-        
-        upperPlot = [(idx,p.y[pipe.KEY_UPPER]) for idx, p in enumerate(plot)]
-        upperLine = wx.lib.plot.PolyLine(upperPlot, legend = "Upper Bound", colour = "green")
-        
-        lines = [ priceLine, lowerLine, upperLine ]
-        self.view.canvas.Draw(wx.lib.plot.PlotGraphics(lines,"Apple", "X axis", "Y axis"))
-        
-        self.view.profitText.SetLabel("Profit : "+ str(sum([p.y[pipe.KEY_PROFIT] for p in plot])))

@@ -199,8 +199,8 @@ class DualMovingAverage():
         plot.y[pipe.KEY_UPPER] = fast_avg
         if fast_avg > slow_avg + offset:
             command = pipe.CMD_BUY
-        elif fast_avg < slow_avg- offset:
+        elif fast_avg < slow_avg - offset:
             command = pipe.CMD_SELL
         return command
-        
+            
         
