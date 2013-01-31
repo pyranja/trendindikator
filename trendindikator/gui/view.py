@@ -84,13 +84,13 @@ class MainFrame(wx.Frame):
         # vertical box nested in 'hboxTrendindicatorValue' containing trendindicator-options
         vboxTrendindicatorValueOption = wx.BoxSizer(wx.VERTICAL)
 
-        intCtrlSignalThreshold = wx.lib.intctrl.IntCtrl(panel)
+        self.signal_threshold = wx.lib.intctrl.IntCtrl(panel)
         #intCtrlSignalThreshold.SetMin(self, 0)
-        vboxTrendindicatorValueOption.Add(intCtrlSignalThreshold)
+        vboxTrendindicatorValueOption.Add(self.signal_threshold)
 
-        numCtrlEnvelopFactor = wx.lib.masked.numctrl.NumCtrl(panel)
+        self.envelope_factor = wx.lib.masked.numctrl.NumCtrl(panel)
         #numCtrlEnvelopFactor.SetMin(self, 0)
-        vboxTrendindicatorValueOption.Add(numCtrlEnvelopFactor)
+        vboxTrendindicatorValueOption.Add(self.envelope_factor)
         
         toggleButtonOption1 = wx.ToggleButton(panel, label = 'Option 1')
         vboxTrendindicatorValueOption.Add(toggleButtonOption1)
@@ -104,15 +104,16 @@ class MainFrame(wx.Frame):
 
         # horizontal box containing trader
         vboxTraderValue = wx.BoxSizer(wx.VERTICAL)
+
+        self.staticTextTrader = wx.StaticText(panel, label='Trader')
+        vboxTraderValue.Add(self.staticTextTrader)
         
         hboxTraderValueType = wx.BoxSizer(wx.HORIZONTAL)
-        self.staticTextTrader = wx.StaticText(panel, label='Trader')
-        hboxTraderValueType.Add(self.staticTextTrader)
         
-        self.trader_type_dynamic = wx.CheckBox(self, label="dynamic")
+        self.trader_type_dynamic = wx.CheckBox(panel, label="dynamic")
         hboxTraderValueType.Add(self.trader_type_dynamic)
         
-        self.trader_type_reverse = wx.CheckBox(self, label="reverse")
+        self.trader_type_reverse = wx.CheckBox(panel, label="reverse")
         hboxTraderValueType.Add(self.trader_type_reverse)
 
         vboxTraderValue.Add(hboxTraderValueType)
@@ -123,7 +124,7 @@ class MainFrame(wx.Frame):
         self.trader_mode_list = ["ShortLong", "Short", "Long"]
         self.trader_mode = wx.ComboBox(panel, choices = self.trader_mode_list, style = wx.CB_READONLY)
         vboxTraderValue.Add(self.trader_mode)
-        vboxInput.Add(vboxTraderValue)#, flag = wx.EXPAND|wx.LEFT|wx.RIGHT, border = 10)
+        vboxInput.Add(vboxTraderValue, flag = wx.EXPAND|wx.LEFT|wx.RIGHT, border = 10)
 
         hboxMain.Add(vboxInput)
         

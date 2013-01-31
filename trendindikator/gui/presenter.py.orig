@@ -8,7 +8,7 @@ import core.indicator
 import core.analyzer
 import wx.lib.plot
 from core import analyzer
-
+import core.indicator
 
 TRADER_MODES = [core.trader.TRADE_SHORTLONG, core.trader.TRADE_SHORT, core.trader.TRADE_LONG]
 SIG_TYPES = [core.indicator.SIG_BUY_HOLD, core.indicator.SIG_BUY_HOLD, core.indicator.SIG_SIMPLE_MOVING_AVERAGE, core.indicator.SIG_DUAL_MOVING_AVERAGE]
@@ -150,7 +150,11 @@ class SettingsPresenter(object):
                 v.notify("%s : Chosen signaler needs two positive parameters" % i.name)
 
     def onChangeTrendindicator(self, evt):
+<<<<<<< HEAD
+        raise ValueError(self.view.comboTrendindicator.GetValue())
+=======
         raise ValueError(self.view.comboTrendindicator.GetValue(self))
+>>>>>>> 8c95417b838f0ebebb9267baa936773d7723c4b5
 
 class GraphPresenter(object):
     '''
