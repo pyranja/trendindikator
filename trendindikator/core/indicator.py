@@ -150,6 +150,8 @@ class BuyAndHold():
         
     def process(self, price, plot):
         command = pipe.CMD_NONE
+        plot.y[pipe.KEY_LOWER] = None
+        plot.y[pipe.KEY_UPPER] = None
         if self.is_first:
             self.is_first = False
             command = pipe.CMD_BUY

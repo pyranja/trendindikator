@@ -68,6 +68,9 @@ class Actor(object):
     @signaler.setter
     def signaler(self, signaler_histories):
         self._signaler, self.histories = signaler_histories
+        
+    def __str__(self):
+        return "("+ self.name + "|" + repr(self.trader) + "|" + repr(self._signaler) + "|" + repr(self.histories) + ")" 
       
 class PipeSpec(object):
     '''Holds all required components of a processing pipe.'''

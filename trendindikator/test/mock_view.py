@@ -133,7 +133,7 @@ class MockView(object):
     
     # --> trader properties
     @property
-    def trader_mode(self):
+    def ctrl_trader_mode(self):
         pass
         
     @trader_mode.setter
@@ -141,7 +141,7 @@ class MockView(object):
         pass
     
     @property
-    def initial_funds(self):
+    def ctrl_initial_funds(self):
         pass
         
     @initial_funds.setter

@@ -11,7 +11,7 @@ from core import analyzer
 
 
 TRADER_MODES = [core.trader.TRADE_SHORTLONG, core.trader.TRADE_SHORT, core.trader.TRADE_LONG]
-SIG_TYPES = [core.indicator.SIG_BUY_HOLD, core.indicator.SIG_BUY_HOLD, core.indicator.SIG_SIMPLE_MOVING_AVERAGE, core.indicator.SIG_DUAL_MOVING_AVERAGE]
+SIG_TYPES = [core.indicator.SIG_BUY_HOLD, core.indicator.SIG_BREAK_RANGE, core.indicator.SIG_SIMPLE_MOVING_AVERAGE, core.indicator.SIG_DUAL_MOVING_AVERAGE]
 
 class SettingsPresenter(object):
     '''
@@ -27,32 +27,29 @@ class SettingsPresenter(object):
         self.idx_repo = index_repo
         self.idx_key = None
     
-    def update_index(self):
+    def update_index(self, evt):
         '''
         Fetch index data for set symbol and date range
         '''
         if self.idx_key:
-            self.idx_repo.remove(self.idx_key)
+            self.idx_repo.delete(self.idx_key)
         symbol = self.view.stock_symbol
         start = self.view.stock_start
         end = self.view.stock_end
         # validation ?
         try:
-            self.view.freeze()
             self.idx_key = self.idx_repo.fetch(symbol, start, end)
             self.view.notify("Loaded %s" % symbol)
             self.graphics.draw_index(self.idx_key, symbol)
         except StandardError as e:
             self.view.notify("Error on index update : %r" % e)
-        finally:
-            self.view.thaw()
+            raise
 
-    def invoke_pipe(self):
+    def invoke_pipe(self, evt):
         '''
         set up processing pipe and process currently set index 
         '''
         v = self.view   # less typing
-        v.freeze()
         pipe = core.pipe.PipeSpec()
         try:
             actor_ids = []
@@ -64,19 +61,21 @@ class SettingsPresenter(object):
             actor_ids.append(actor.name)
             index = self.idx_repo.get(self.idx_key)
             plot = pipe.invoke(index)
-            # make statistics
-            statistics = []
-            for actor_id in actor_ids:
-                 stats = core.analyzer.Statistics(actor_id, v.initial_funds)
-                 stats.feed(plot, actor_id)
-                 statistics.append(stats)
-            self.graphics.print_statistics(statistics)
-            # call graphics to draw plot
-            self.graphics.draw_plot(plot, actor_ids[0]) # only plot first indicator
+            if len(plot) > 0:
+                # call graphics to draw plot
+                self.graphics.draw_plot(plot, actor_ids[0]) # only plot first indicator
+                # make statistics
+                statistics = []
+                for actor_id in actor_ids:
+                    stats = core.analyzer.Statistics(actor_id, v.initial_funds)
+                    stats.feed(plot, actor_id)
+                    statistics.append(stats)
+                self.graphics.print_statistics(statistics)
+            else:
+                v.notify("No data gathered -> index range to small?")
         except StandardError as e:
             v.notify("Error on pipe processing : %r" % e)
-        finally:
-            v.thaw()
+            raise
         
     def _make_actor(self, v, i):
         actor = core.pipe.Actor(i.name)
@@ -89,14 +88,14 @@ class SettingsPresenter(object):
         actor.signaler = core.indicator.create_signaler(i.signaler_type, i.signal_threshold, i.envelope_factor, *args)
         return actor
     
-    def validate_view(self):
+    def validate_view(self, evt):
         '''
         examine each view property and verify integrity
         '''
         v = self.view   # less typing
         # verify trader
-        if v.initial_funds < 0:
-            v.initial_funds = 0
+        if v.initial_funds < 100:
+            v.initial_funds = 10000
             v.notify("Initial funds must be positive")
         if not v.trader_mode in TRADER_MODES:
             v.trader_mode = core.trader.TRADE_SHORTLONG
@@ -114,19 +113,19 @@ class SettingsPresenter(object):
             del iv.history_param2
         elif sig_type in (core.indicator.SIG_BREAK_RANGE, core.indicator.SIG_SIMPLE_MOVING_AVERAGE):
             if iv.history_param1 is None:
-                iv.history_param1 = 0
+                iv.history_param1 = 30
             del iv.history_param2
         elif sig_type == core.indicator.SIG_DUAL_MOVING_AVERAGE:
             if iv.history_param1 is None:
-                iv.history_param1 = 0
+                iv.history_param1 = 10
             if iv.history_param2 is None:
-                iv.history_param2 = 0
+                iv.history_param2 = 50
                     
     def _validate_indicator(self, i):
         v = self.view
         if i.signal_threshold < 0:
-           i.signal_threshold = 0
-           v.notify("%s : Signal threshold must be positive" % i.name)
+            i.signal_threshold = 0
+            v.notify("%s : Signal threshold must be positive" % i.name)
         if i.envelope_factor < 0.0 or i.envelope_factor > 1.0:
             i.envelop_factor = 0.0
             v.notify("%s : Envelope factor must be in [0..1]" % i.name)
@@ -137,20 +136,19 @@ class SettingsPresenter(object):
         # need one argument
         if sig_type == core.indicator.SIG_BREAK_RANGE or sig_type == core.indicator.SIG_SIMPLE_MOVING_AVERAGE:
             if i.history_param1 < 0:
-                i.history_param1 = 0
+                i.history_param1 = 30
                 v.notify("%s : Chosen signaler needs one positive parameter" % i.name)
         elif sig_type == core.indicator.SIG_DUAL_MOVING_AVERAGE:
+            error = False
             if i.history_param2 < 0:
-                i.history_param1 = 0
+                i.history_param1 = 10
                 error = True
             if i.history_param2 < 0:
-                i.history_param2 = 0
+                i.history_param2 = 50
                 error = True
             if error:
                 v.notify("%s : Chosen signaler needs two positive parameters" % i.name)
 
-    def onChangeTrendindicator(self, evt):
-        raise ValueError(self.view.comboTrendindicator.GetValue(self))
 
 class GraphPresenter(object):
     '''
@@ -168,12 +166,13 @@ class GraphPresenter(object):
             index = self.repo.get(key)
         except StandardError as e:
             self.view.notify("Error on reading index %s : %r" % (key,e))
+            raise
         else:
-            index_points = [(idx, point.price) for idx, point in enumerate(index)]
+            index_points = [(idx, price) for idx, (_, price) in enumerate(index)]
             index_line = wx.lib.plot.PolyLine(index_points, legend = "index")
             self.view.canvas.Draw(wx.lib.plot.PlotGraphics([index_line], title = stock_name, xLabel = "", yLabel = "price"))
             
-    def draw_plot(self, plot, actor_id, stock_name):
+    def draw_plot(self, plot, actor_id):
         '''
         Draw results of pipe processing
         '''
@@ -188,11 +187,11 @@ class GraphPresenter(object):
         for idx, point in enumerate(plot):
             point.context = actor_id
             index_point = (idx, point.price)
-            index_points.append(index_point)
-            lower_points.append((idx, point[core.pipe.KEY_LOWER]))
-            upper_points.append((idx, point[core.pipe.KEY_UPPER]))
-            hold_points.append((idx, point[core.pipe.KEY_HOLD_AT]))
-            action = point[core.pipe.KEY_ACTION]
+            self.append_if_valid(index_points, index_point)
+            self.append_if_valid(lower_points, (idx, point.y[core.pipe.KEY_LOWER]))
+            self.append_if_valid(upper_points, (idx, point.y[core.pipe.KEY_UPPER]))
+            self.append_if_valid(hold_points, (idx, point.y[core.pipe.KEY_HOLD_AT]))
+            action = point.y[core.pipe.KEY_ACTION]
             if action == core.pipe.ACTION_CLEAR:
                 clear_marker.append(index_point)
             elif action == core.pipe.ACTION_LONG:
@@ -204,14 +203,18 @@ class GraphPresenter(object):
         lines.append(wx.lib.plot.PolyLine(index_points, legend = "index"))
         lines.append(wx.lib.plot.PolyLine(lower_points, legend = "lower bound", colour = "red"))
         lines.append(wx.lib.plot.PolyLine(upper_points, legend = "upper bound", colour = "green"))
-        lines.append(wx.lib.plot.PolyLine(hold_points, legend = "held position", colour = "blue"))
+        #lines.append(wx.lib.plot.PolyLine(hold_points, legend = "held position", colour = "blue"))
         lines.append(wx.lib.plot.PolyMarker(short_marker, legend = "short position", colour = "orange", marker="triangle_down"))
         lines.append(wx.lib.plot.PolyMarker(long_marker, legend = "long position", colour = "violet", marker="triangle"))
         lines.append(wx.lib.plot.PolyMarker(clear_marker, legend = "cleared position", colour = "yellow", marker="cross"))
         # pack
-        full_plot = wx.lib.plot.PlotGraphics(lines, title = stock_name, xLabel = "", yLabel = "price")
-        self.view.canvas.Draw(full_plot) 
-            
+        full_plot = wx.lib.plot.PlotGraphics(lines, xLabel = "", yLabel = "price")
+        self.view.canvas.Draw(full_plot)         
+    
+    def append_if_valid(self, list, point):
+        if point[1] is not None:
+            list.append(point)
+    
     def print_statistics(self, statistics):
         '''
         Print gathered statistics line by line 
@@ -219,8 +222,8 @@ class GraphPresenter(object):
         text = ""
         for stats in statistics:
             text += "Indicator {} :\n".format(stats.name)
-            text += "transactions : {} | total yield : {:.2} <> relative {:.2%}\n".format(stats.total_yield, stats.relative_yield, stats.tx_count)
-            text += "yields : min {:.2} , max {:.2} , average {:.2%} | volatility {:.2%}\n".format(stats.min_yield, stats.max_yield, stats.average_yield, stats.volatility)
+            text += "transactions : {} | total yield : {:.2f} <> relative {:.2%}\n".format(stats.tx_count, stats.total_yield, stats.relative_yield, )
+            text += "yields : min {:.2f} , max {:.2f} , average {:.2%} | volatility {:.2%}\n".format(stats.min_yield, stats.max_yield, stats.average_yield, stats.volatility)
             text += "{:=^30}\n".format("=")
         self.view.report(text)
         
