@@ -58,10 +58,14 @@ class IndicatorView(wx.Panel):
         
         left_box.Add(name_label, flag = wx.ALL, border = 5)
         left_box.Add(self.type_chooser, flag = wx.ALL, border = 5)
-        right_box.Add(self.threshold_spinner, flag = wx.ALL, border = 5)
-        right_box.Add(self.factor_ctrl, flag = wx.ALL, border = 5)
-        right_box.Add(self.history1_spinner, flag = wx.ALL, border = 5)
-        right_box.Add(self.history2_spinner, flag = wx.ALL, border = 5)
+        right_box.Add(wx.StaticText(self, label = "signal lag"))
+        right_box.Add(self.threshold_spinner, flag = wx.TOP, border = 2)
+        right_box.Add(wx.StaticText(self, label = "envelope"), flag = wx.TOP, border = 5)
+        right_box.Add(self.factor_ctrl, flag = wx.TOP, border = 2)
+        right_box.Add(wx.StaticText(self, label = "fast range"), flag = wx.TOP, border = 5)
+        right_box.Add(self.history1_spinner, flag = wx.TOP, border = 2)
+        right_box.Add(wx.StaticText(self, label = "slow range"), flag = wx.TOP, border = 5)
+        right_box.Add(self.history2_spinner, flag = wx.TOP, border = 2)
 
         root_box.Add(left_box, flag = wx.ALL, border = 10)
         root_box.Add(right_box, flag = wx.ALL, border = 10)
@@ -137,6 +141,7 @@ class MainFrame(wx.Frame):
         self.stock_symbol = "aapl"
         self.stock_start = datetime.datetime(2008,1,30)
         self.stock_end = datetime.datetime(2013,1,30)
+        self.btn_process.Disable()
         
     def build(self, panel):
         hboxMain = wx.BoxSizer(wx.HORIZONTAL)
@@ -227,6 +232,12 @@ class MainFrame(wx.Frame):
         
     def report(self, text):
         self.text_out.SetLabel(text)
+        
+    def set_can_process(self, i_can = True):
+        if i_can:
+            self.btn_process.Enable()
+        else:
+            self.btn_process.Disable()
 
     # --> index properties        
     @property

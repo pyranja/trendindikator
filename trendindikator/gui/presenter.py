@@ -31,8 +31,10 @@ class SettingsPresenter(object):
         '''
         Fetch index data for set symbol and date range
         '''
-        if self.idx_key:
+        self.view.set_can_process(False)
+        if self.idx_key is not None:
             self.idx_repo.delete(self.idx_key)
+            self.idx_key = None
         symbol = self.view.stock_symbol
         start = self.view.stock_start
         end = self.view.stock_end
@@ -41,6 +43,7 @@ class SettingsPresenter(object):
             self.idx_key = self.idx_repo.fetch(symbol, start, end)
             self.view.notify("Loaded %s" % symbol)
             self.graphics.draw_index(self.idx_key, symbol)
+            self.view.set_can_process(True)
         except StandardError as e:
             self.view.notify("Error on index update : %r" % e)
             raise
