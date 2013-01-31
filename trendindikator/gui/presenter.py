@@ -8,6 +8,7 @@ import core.indicator
 import core.analyzer
 import wx.lib.plot
 from core import analyzer
+import math
 
 
 TRADER_MODES = [core.trader.TRADE_SHORTLONG, core.trader.TRADE_SHORT, core.trader.TRADE_LONG]
@@ -215,7 +216,7 @@ class GraphPresenter(object):
         self.view.canvas.Draw(full_plot)         
     
     def append_if_valid(self, list, point):
-        if point[1] is not None:
+        if point[1] is not None and not math.isnan(point[1]) and not math.isinf(point[1]):
             list.append(point)
     
     def print_statistics(self, statistics):
